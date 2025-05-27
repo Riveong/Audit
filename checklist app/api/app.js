@@ -1,143 +1,87 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const fs = require('fs');
-const { initDB } = require('./db');
+require('dotenv').config();
+
+const { pool, initDB } = require('./db');
 const {
   upload,
-  // Sites
   getAllSites,
   createSite,
   deleteSite,
-  // Violations (renamed from criterions)
   getAllViolations,
   createViolation,
   deleteViolation,
   updateViolationOrder,
-  // Checklists
   getAllChecklists,
   getChecklistById,
   createChecklist,
   updateChecklist,
   deleteChecklist,
-  // Checklist Progress
   updateChecklistProgress,
   getChecklistProgress,
   resetChecklistProgress
 } = require('./controller');
 
-require('dotenv').config();
+// Import auth controller - make sure this path is correct
+const {
+  loginUser,
+  verifyToken
+} = require('./authController');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware
-app.use(cors({
-  origin: ['http://localhost:5174', 'http://localhost:3000'], 
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-}));
+app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Create uploads directory if it doesn't exist
+const fs = require('fs');
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Serve static files from uploads directory
-app.use('/uploads', express.static(uploadsDir));
-
-// Routes
-
-// Health check route
-app.get('/api/health', (req, res) => {
-  res.json({ success: true, message: 'API is running', timestamp: new Date().toISOString() });
-});
+// Auth Routes (no token required)
+app.post('/api/auth/login', loginUser);
 
 // Sites Routes
 app.get('/api/sites', getAllSites);
-app.post('/api/sites', createSite);
-app.delete('/api/sites/:id', deleteSite);
+app.post('/api/sites', verifyToken, createSite);
+app.delete('/api/sites/:id', verifyToken, deleteSite);
 
-// Violations Routes (renamed from criterions)
+// Violations Routes
 app.get('/api/violations', getAllViolations);
-app.post('/api/violations', createViolation);
-app.delete('/api/violations/:id', deleteViolation);
-app.put('/api/violations/order', updateViolationOrder);
+app.post('/api/violations', verifyToken, createViolation);
+app.delete('/api/violations/:id', verifyToken, deleteViolation);
+app.put('/api/violations/order', verifyToken, updateViolationOrder);
 
 // Checklists Routes
 app.get('/api/checklists', getAllChecklists);
 app.get('/api/checklists/:id', getChecklistById);
-app.post('/api/checklists', upload.single('image'), createChecklist);
-app.put('/api/checklists/:id', upload.single('image'), updateChecklist);
-app.delete('/api/checklists/:id', deleteChecklist);
+app.post('/api/checklists', verifyToken, upload.single('image'), createChecklist);
+app.put('/api/checklists/:id', verifyToken, upload.single('image'), updateChecklist);
+app.delete('/api/checklists/:id', verifyToken, deleteChecklist);
 
-// Checklist Progress Routes (updated parameter names)
-app.put('/api/checklists/:checklistId/progress/:violationId', updateChecklistProgress);
+// Checklist Progress Routes
+app.put('/api/checklists/:checklistId/progress/:violationId', verifyToken, updateChecklistProgress);
 app.get('/api/checklists/:checklistId/progress', getChecklistProgress);
-app.post('/api/checklists/:checklistId/reset', resetChecklistProgress);
+app.post('/api/checklists/:checklistId/reset', verifyToken, resetChecklistProgress);
+
+// Health check
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
 
 // Error handling middleware
 app.use((error, req, res, next) => {
-  console.error('Error:', error);
-  
-  if (error.code === 'LIMIT_FILE_SIZE') {
-    return res.status(400).json({ 
-      success: false, 
-      error: 'File too large. Maximum size is 5MB.' 
-    });
-  }
-  
-  if (error.message === 'Only image files are allowed!') {
-    return res.status(400).json({ 
-      success: false, 
-      error: error.message 
-    });
-  }
-  
-  // PostgreSQL errors
-  if (error.code === '23505') {
-    return res.status(400).json({ 
-      success: false, 
-      error: 'Duplicate entry' 
-    });
-  }
-  
-  if (error.code === '23503') {
-    return res.status(400).json({ 
-      success: false, 
-      error: 'Foreign key constraint violation' 
-    });
-  }
-  
+  console.error('Server error:', error);
   res.status(500).json({ 
     success: false, 
-    error: 'Internal server error',
-    message: process.env.NODE_ENV === 'development' ? error.message : undefined
+    error: 'Internal server error' 
   });
-});
-
-// 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({ 
-    success: false, 
-    error: 'Route not found',
-    path: req.originalUrl
-  });
-});
-
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully');
-  process.exit(0);
-});
-
-process.on('SIGINT', () => {
-  console.log('SIGINT received, shutting down gracefully');
-  process.exit(0);
 });
 
 // Initialize database and start server
@@ -145,17 +89,25 @@ async function startServer() {
   try {
     console.log('Initializing database...');
     await initDB();
-    console.log('Database initialized successfully');
+    
+    console.log('Setting up authentication...');
+    const { createAuthTables } = require('./auth-migrate');
+    await createAuthTables();
     
     app.listen(PORT, () => {
-      console.log(`🚀 Server is running on port ${PORT}`);
-      console.log(`📡 API available at http://localhost:${PORT}/api`);
-      console.log(`🔍 Health check: http://localhost:${PORT}/api/health`);
-      console.log(`📂 Uploads directory: ${uploadsDir}`);
-      console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`🚀 Server running on http://localhost:${PORT}`);
+      console.log('📚 Available endpoints:');
+      console.log('   - POST /api/auth/login - Login user');
+      console.log('   - GET /api/sites - Get all sites');
+      console.log('   - GET /api/violations - Get all violations');
+      console.log('   - GET /api/checklists - Get all checklists');
+      console.log('');
+      console.log('🔐 Default login credentials:');
+      console.log('   Employee ID: admin');
+      console.log('   Password: admin123');
     });
   } catch (error) {
-    console.error('❌ Failed to start server:', error);
+    console.error('❌ Failed to start server:', error.message);
     process.exit(1);
   }
 }

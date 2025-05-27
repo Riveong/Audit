@@ -1,31 +1,45 @@
 import { useState } from 'react'
+import LoginModal from './LoginModal'
 
-const LoginButton = ({ isLoggedIn, setIsLoggedIn }) => {
-  const handleLogin = () => {
-    setIsLoggedIn(!isLoggedIn)
+const LoginButton = ({ isLoggedIn, setIsLoggedIn, user, setUser }) => {
+  const [showLoginModal, setShowLoginModal] = useState(false)
+
+  const handleLoginSuccess = (userData) => {
+    setIsLoggedIn(true)
+    setUser(userData)
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem('authToken')
+    localStorage.removeItem('user')
+    setIsLoggedIn(false)
+    setUser(null)
   }
 
   return (
-    <button 
-      className={`px-6 py-2 rounded-lg font-semibold transition-all duration-200 shadow-lg transform hover:scale-105 ${
-        isLoggedIn 
-          ? 'bg-red-500 hover:bg-red-600 text-white' 
-          : 'bg-white text-blue-600 hover:bg-gray-50'
-      }`}
-      onClick={handleLogin}
-    >
-      {isLoggedIn ? (
-        <span className="flex items-center space-x-2">
-          <span>🚪</span>
-          <span>Logout</span>
+    <>
+      <button
+        onClick={isLoggedIn ? handleLogout : () => setShowLoginModal(true)}
+        className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center space-x-2 ${
+          isLoggedIn
+            ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg hover:shadow-xl'
+            : 'bg-green-500 hover:bg-green-600 text-white shadow-lg hover:shadow-xl'
+        }`}
+      >
+        <span className="text-base">
+          {isLoggedIn ? '🚪' : '🔐'}
         </span>
-      ) : (
-        <span className="flex items-center space-x-2">
-          <span>🔐</span>
-          <span>Login</span>
+        <span>
+          {isLoggedIn ? 'Logout' : 'Login'}
         </span>
-      )}
-    </button>
+      </button>
+
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onLoginSuccess={handleLoginSuccess}
+      />
+    </>
   )
 }
 

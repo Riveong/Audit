@@ -3,33 +3,52 @@ import Homepage from './pages/Homepage'
 import AdminPage from './pages/AdminPage'
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('home') // 'home' or 'admin'
+  const [currentPage, setCurrentPage] = useState('home')
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [user, setUser] = useState(null)
 
-  // Redirect to home if user logs out while on admin page
+  // Check for existing auth on app load
   useEffect(() => {
-    if (!isLoggedIn && currentPage === 'admin') {
-      setCurrentPage('home')
+    const token = localStorage.getItem('authToken')
+    const userData = localStorage.getItem('user')
+    
+    if (token && userData) {
+      setIsLoggedIn(true)
+      setUser(JSON.parse(userData))
     }
-  }, [isLoggedIn, currentPage])
+  }, [])
+
+  const renderCurrentPage = () => {
+    switch (currentPage) {
+      case 'admin':
+        return (
+          <AdminPage 
+            currentPage={currentPage}
+            setCurrentPage={setCurrentPage}
+            isLoggedIn={isLoggedIn}
+            setIsLoggedIn={setIsLoggedIn}
+            user={user}
+            setUser={setUser}
+          />
+        )
+      case 'home':
+      default:
+        return (
+          <Homepage 
+            currentPage={currentPage}
+            setCurrentPage={setCurrentPage}
+            isLoggedIn={isLoggedIn}
+            setIsLoggedIn={setIsLoggedIn}
+            user={user}
+            setUser={setUser}
+          />
+        )
+    }
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {currentPage === 'home' ? (
-        <Homepage 
-          currentPage={currentPage} 
-          setCurrentPage={setCurrentPage}
-          isLoggedIn={isLoggedIn}
-          setIsLoggedIn={setIsLoggedIn}
-        />
-      ) : (
-        <AdminPage 
-          currentPage={currentPage} 
-          setCurrentPage={setCurrentPage}
-          isLoggedIn={isLoggedIn}
-          setIsLoggedIn={setIsLoggedIn}
-        />
-      )}
+    <div className="App">
+      {renderCurrentPage()}
     </div>
   )
 }
