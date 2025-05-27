@@ -81,12 +81,12 @@ const ViolationManager = () => {
       
       {/* Add New Violation */}
       <form onSubmit={addViolation} className="mb-8">
-        <div className="flex space-x-2">
+        <div>
           <input
             type="text"
             value={newViolation}
             onChange={(e) => setNewViolation(e.target.value)}
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full mb-4"
             placeholder="Enter new violation (e.g., Equipment not properly maintained)"
             disabled={loading}
           />
