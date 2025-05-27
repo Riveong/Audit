@@ -25,7 +25,7 @@ const Homepage = ({
   // Filter and search states
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSite, setSelectedSite] = useState("");
-  const [completionFilter, setCompletionFilter] = useState("all"); // 'all', 'completed', 'incomplete'
+  const [completionFilter, setCompletionFilter] = useState("incomplete"); // 'all', 'completed', 'incomplete'
   const [sortBy, setSortBy] = useState("newest"); // 'newest', 'oldest', 'name-asc', 'name-desc', 'progress-asc', 'progress-desc'
   const [currentPageNum, setCurrentPageNum] = useState(1);
 
@@ -68,17 +68,12 @@ const Homepage = ({
       const matchesSite =
         selectedSite === "" || checklist.site === selectedSite;
 
-      // Completion filter
-      const completedItems = parseInt(checklist.completed_items) || 0;
-      const totalItems = parseInt(checklist.total_items) || 0;
-      const progressPercentage =
-        totalItems > 0 ? (completedItems / totalItems) * 100 : 0;
-
+      // Completion filter - updated to use status
       let matchesCompletion = true;
       if (completionFilter === "completed") {
-        matchesCompletion = progressPercentage === 100;
+        matchesCompletion = checklist.status === 'completed';
       } else if (completionFilter === "incomplete") {
-        matchesCompletion = progressPercentage < 100;
+        matchesCompletion = checklist.status !== 'completed';
       }
 
       return matchesSearch && matchesSite && matchesCompletion;
@@ -105,6 +100,8 @@ const Homepage = ({
           return aProgress - bProgress;
         case "progress-desc":
           return bProgress - aProgress;
+        case "status-completed":
+          return (b.status === 'completed' ? 1 : 0) - (a.status === 'completed' ? 1 : 0);
         case "newest":
         default:
           return new Date(b.created_at) - new Date(a.created_at);
@@ -282,7 +279,7 @@ const Homepage = ({
             {/* Completion Filter */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                ✅ Completion Status
+                ✅ Status Filter
               </label>
               <select
                 value={completionFilter}
@@ -290,8 +287,8 @@ const Homepage = ({
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="all">All Checklists</option>
-                <option value="completed">Fully Inspected</option>
-                <option value="incomplete">Inspection Pending</option>
+                <option value="completed">Completed</option>
+                <option value="incomplete">In Progress</option>
               </select>
             </div>
 
@@ -311,6 +308,7 @@ const Homepage = ({
                 <option value="name-desc">Name (Z-A)</option>
                 <option value="progress-desc">Most Violations Found</option>
                 <option value="progress-asc">Fewest Violations Found</option>
+                <option value="status-completed">Completed First</option>
               </select>
             </div>
           </div>
