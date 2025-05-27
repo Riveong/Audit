@@ -60,21 +60,18 @@ export const violationsAPI = {
 export const checklistsAPI = {
   getAll: () => api.get('/checklists'),
   getById: (id) => api.get(`/checklists/${id}`),
-  create: (formData) => {
-    return api.post('/checklists', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    })
-  },
-  update: (id, formData) => {
-    return api.put(`/checklists/${id}`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    })
-  },
+  create: (formData) => api.post('/checklists', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  }),
+  update: (id, formData) => api.put(`/checklists/${id}`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  }),
   delete: (id) => api.delete(`/checklists/${id}`),
+  markAsCompleted: (id) => api.put(`/checklists/${id}/complete`)
 }
 
 // Progress API

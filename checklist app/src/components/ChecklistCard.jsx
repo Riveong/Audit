@@ -5,6 +5,14 @@ const ChecklistCard = ({ checklist, isLoggedIn, onOpenChecklist }) => {
   const completedCount = parseInt(checklist.completed_items) || 0
   const totalCount = parseInt(checklist.total_items) || checklist.criterias?.length || 0
   const progressPercentage = totalCount > 0 ? (completedCount / totalCount) * 100 : 0
+  
+  // Calculate due date (1 week after creation)
+  const createdDate = new Date(checklist.created_at)
+  const dueDate = new Date(createdDate)
+  dueDate.setDate(createdDate.getDate() + 7)
+  
+  // Check if overdue
+  const isOverdue = new Date() > dueDate && checklist.status !== 'completed'
 
   const handleCardClick = () => {
     onOpenChecklist(checklist.id)
@@ -36,27 +44,36 @@ const ChecklistCard = ({ checklist, isLoggedIn, onOpenChecklist }) => {
           </span>
         </div>
         
-        {/* Progress Badge */}
+        {/* Violations Found Badge */}
         <div className="absolute top-4 left-4">
           <span className={`px-3 py-1 rounded-full text-sm font-medium shadow-lg ${
             progressPercentage === 100 
-              ? 'bg-green-500 text-white' 
+              ? 'bg-red-600 text-white' 
               : progressPercentage > 0 
                 ? 'bg-yellow-500 text-white' 
-                : 'bg-gray-500 text-white'
+                : 'bg-green-500 text-white'
           }`}>
-            {Math.round(progressPercentage)}%
+            {completedCount}/{totalCount} Violations
           </span>
         </div>
 
-        {/* Completion Badge */}
-        {progressPercentage === 100 && (
+        {/* Status Badge - Only show if completed */}
+        {checklist.status === 'completed' && (
           <div className="absolute bottom-4 right-4">
             <span className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium shadow-lg flex items-center">
               <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
               </svg>
-              Complete!
+              Completed
+            </span>
+          </div>
+        )}
+
+        {/* Overdue Badge */}
+        {isOverdue && (
+          <div className="absolute bottom-4 left-4">
+            <span className="bg-red-600 text-white px-3 py-1 rounded-full text-sm font-medium shadow-lg flex items-center">
+              ⚠️ Overdue
             </span>
           </div>
         )}
@@ -65,20 +82,20 @@ const ChecklistCard = ({ checklist, isLoggedIn, onOpenChecklist }) => {
       <div className="p-6">
         <h2 className="text-xl font-bold text-gray-800 mb-3">{checklist.name}</h2>
         
-        {/* Progress Bar */}
+        {/* Violations Progress Bar */}
         <div className="mb-4">
           <div className="flex justify-between text-sm text-gray-600 mb-2">
-            <span>Progress</span>
+            <span>Violations Found</span>
             <span>{completedCount}/{totalCount} items</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-3">
             <div 
               className={`h-3 rounded-full transition-all duration-500 ${
                 progressPercentage === 100 
-                  ? 'bg-green-500' 
+                  ? 'bg-red-600' 
                   : progressPercentage > 0 
                     ? 'bg-yellow-500' 
-                    : 'bg-gray-400'
+                    : 'bg-green-400'
               }`}
               style={{ width: `${progressPercentage}%` }}
             ></div>
@@ -91,9 +108,21 @@ const ChecklistCard = ({ checklist, isLoggedIn, onOpenChecklist }) => {
             <div className="text-2xl font-bold text-blue-600">{totalCount}</div>
             <div className="text-sm text-blue-600">Total Items</div>
           </div>
-          <div className="text-center p-3 bg-green-50 rounded-lg">
-            <div className="text-2xl font-bold text-green-600">{completedCount}</div>
-            <div className="text-sm text-green-600">Completed</div>
+          <div className="text-center p-3 bg-red-50 rounded-lg">
+            <div className="text-2xl font-bold text-red-600">{completedCount}</div>
+            <div className="text-sm text-red-600">Violations</div>
+          </div>
+        </div>
+
+        {/* Due Date */}
+        <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-600">Due Date:</span>
+            <span className={`text-sm font-medium ${
+              isOverdue ? 'text-red-600' : checklist.status === 'completed' ? 'text-green-600' : 'text-gray-800'
+            }`}>
+              {dueDate.toLocaleDateString()}
+            </span>
           </div>
         </div>
 

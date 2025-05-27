@@ -94,6 +94,22 @@ const ChecklistView = ({ checklistId, onClose, isLoggedIn }) => {
     }
   }
 
+  const markAsCompleted = async () => {
+    if (!isLoggedIn || !confirm('Are you sure you want to mark this checklist as completed?')) return
+
+    try {
+      await checklistsAPI.markAsCompleted(checklistId)
+      
+      // Update local state
+      setChecklist(prev => ({
+        ...prev,
+        status: 'completed'
+      }))
+    } catch (error) {
+      console.error('Error marking checklist as completed:', error)
+    }
+  }
+
   const startEditingNotes = (violationId, currentNotes) => {
     setEditingNotes(violationId)
     setTempNote(currentNotes || '')
@@ -185,9 +201,22 @@ const ChecklistView = ({ checklistId, onClose, isLoggedIn }) => {
               >
                 🔄 Reset Inspection
               </button>
+              {checklist.status !== 'completed' && (
+                <button
+                  onClick={markAsCompleted}
+                  className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm transition-colors"
+                >
+                  ✅ Mark as Completed
+                </button>
+              )}
               {violationsFound === checklist.items.length && (
                 <div className="bg-red-500 text-white px-4 py-2 rounded-lg text-sm flex items-center">
                   ⚠️ All Violations Found!
+                </div>
+              )}
+              {checklist.status === 'completed' && (
+                <div className="bg-green-500 text-white px-4 py-2 rounded-lg text-sm flex items-center">
+                  ✅ Completed
                 </div>
               )}
             </div>

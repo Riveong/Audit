@@ -18,6 +18,7 @@ const {
   createChecklist,
   updateChecklist,
   deleteChecklist,
+  markChecklistAsCompleted,
   updateChecklistProgress,
   getChecklistProgress,
   resetChecklistProgress
@@ -64,6 +65,7 @@ app.get('/api/checklists/:id', getChecklistById);
 app.post('/api/checklists', verifyToken, upload.single('image'), createChecklist);
 app.put('/api/checklists/:id', verifyToken, upload.single('image'), updateChecklist);
 app.delete('/api/checklists/:id', verifyToken, deleteChecklist);
+app.put('/api/checklists/:id/complete', verifyToken, markChecklistAsCompleted);
 
 // Checklist Progress Routes
 app.put('/api/checklists/:checklistId/progress/:violationId', verifyToken, updateChecklistProgress);

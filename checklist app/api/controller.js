@@ -181,6 +181,7 @@ const getChecklistById = async (req, res) => {
       name: result.rows[0].name,
       site: result.rows[0].site,
       img_url: result.rows[0].img_url,
+      status: result.rows[0].status,
       created_at: result.rows[0].created_at,
       updated_at: result.rows[0].updated_at,
       items: result.rows.map(row => ({
@@ -321,6 +322,25 @@ const deleteChecklist = async (req, res) => {
   }
 };
 
+const markChecklistAsCompleted = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const result = await pool.query(
+      'UPDATE grm_checklist SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *',
+      ['completed', id]
+    );
+    
+    if (result.rowCount === 0) {
+      return res.status(404).json({ success: false, error: 'Checklist not found' });
+    }
+    
+    res.json({ success: true, data: result.rows[0], message: 'Checklist marked as completed' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 // Checklist Progress Controllers
 const updateChecklistProgress = async (req, res) => {
   try {
@@ -396,6 +416,7 @@ module.exports = {
   createChecklist,
   updateChecklist,
   deleteChecklist,
+  markChecklistAsCompleted,
   // Checklist Progress
   updateChecklistProgress,
   getChecklistProgress,
